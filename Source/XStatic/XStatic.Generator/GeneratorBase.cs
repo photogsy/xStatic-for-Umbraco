@@ -216,9 +216,9 @@ namespace XStatic.Generator
 
                 string downloadedSource;
 
-                using (var client = new System.Net.WebClient())
+                using (var client = new WebClient())
                 {
-                    client.Encoding = DefaultEncoder;
+                    client.Encoding = Encoding.UTF8;
 
                     downloadedSource = await client.DownloadStringTaskAsync(absoluteUrl);
                 }

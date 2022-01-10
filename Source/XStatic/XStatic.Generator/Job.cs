@@ -20,10 +20,6 @@ namespace XStatic.Generator
 
         public List<int> PageIds { get; set; } = new List<int>();
 
-        public List<int> MediaIds { get; set; } = new List<int>();
-
-        public List<Crop> MediaCropSizes { get; set; } = new List<Crop>();
-
         public List<string> Folders { get; set; } = new List<string>();
 
         public List<string> Files { get; set; } = new List<string>();
@@ -33,32 +29,22 @@ namespace XStatic.Generator
     {
         private readonly IGenerator _generator;
 
-        public JobRunner(IGenerator generator)
-        {
+        public JobRunner(IGenerator generator) {
             _generator = generator;
         }
 
-        public async Task<IEnumerable<string>> RunJob(Job job)
-        {
+        public async Task<IEnumerable<string>> RunJob(Job job) {
             var returnList = new List<string>();
 
-            foreach (var id in job.PageIds)
-            {
+            foreach (var id in job.PageIds) {
                 returnList.Add(await _generator.GeneratePage(id, job.StaticSiteId, job.NameGenerator, job.Transformers));
             }
 
-            foreach (var id in job.MediaIds)
-            {
-                returnList.Add(await _generator.GenerateMedia(id, job.StaticSiteId, job.MediaCropSizes));
-            }
-
-            foreach (var folder in job.Folders)
-            {
+            foreach (var folder in job.Folders) {
                 returnList.AddRange(await _generator.GenerateFolder(folder, job.StaticSiteId));
             }
 
-            foreach (var file in job.Files)
-            {
+            foreach (var file in job.Files) {
                 returnList.Add(await _generator.GenerateFile(file, job.StaticSiteId));
             }
 
@@ -70,31 +56,26 @@ namespace XStatic.Generator
     {
         private Job job;
 
-        public JobBuilder(int staticSiteId, IFileNameGenerator nameGenerator)
-        {
-            job = new Job
-            {
+        public JobBuilder(int staticSiteId, IFileNameGenerator nameGenerator) {
+            job = new Job {
                 StaticSiteId = staticSiteId,
                 NameGenerator = nameGenerator
             };
         }
 
-        public JobBuilder AddTransformer(ITransformer transformer)
-        {
+        public JobBuilder AddTransformer(ITransformer transformer) {
             job.Transformers.Add(transformer);
 
             return this;
         }
 
-        public JobBuilder AddTransformers(IEnumerable<ITransformer> transformers)
-        {
+        public JobBuilder AddTransformers(IEnumerable<ITransformer> transformers) {
             job.Transformers.AddRange(transformers);
 
             return this;
         }
 
-        public JobBuilder AddPage(IPublishedContent node)
-        {
+        public JobBuilder AddPage(IPublishedContent node) {
             if (node == null) return this;
 
             job.PageIds.Add(node.Id);
@@ -102,8 +83,7 @@ namespace XStatic.Generator
             return this;
         }
 
-        public JobBuilder AddPageWithDescendants(IPublishedContent node)
-        {
+        public JobBuilder AddPageWithDescendants(IPublishedContent node) {
             if (node == null) return this;
 
             job.PageIds.Add(node.Id);
@@ -115,39 +95,7 @@ namespace XStatic.Generator
             return this;
         }
 
-        public JobBuilder AddMedia(IPublishedContent media)
-        {
-            if (media == null) return this;
-
-            job.MediaIds.Add(media.Id);
-
-            return this;
-        }
-
-        public JobBuilder AddMediaWithDescendants(IPublishedContent media)
-        {
-            if (media == null) return this;
-
-            job.MediaIds.Add(media.Id);
-
-            var childIds = media.Descendants().Select(c => c.Id);
-
-            job.MediaIds.AddRange(childIds);
-
-            return this;
-        }
-        
-        public JobBuilder AddMediaCrops(IEnumerable<Crop> crops)
-        {
-            if (crops == null) return this;
-
-            job.MediaCropSizes.AddRange(crops);
-
-            return this;
-        }
-
-        public JobBuilder AddAssetFolder(string relativePath)
-        {
+        public JobBuilder AddAssetFolder(string relativePath) {
             if (string.IsNullOrWhiteSpace(relativePath)) return this;
 
             job.Folders.Add(relativePath);
@@ -155,8 +103,7 @@ namespace XStatic.Generator
             return this;
         }
 
-        public JobBuilder AddAssetFile(string relativePath)
-        {
+        public JobBuilder AddAssetFile(string relativePath) {
             if (string.IsNullOrWhiteSpace(relativePath)) return this;
 
             job.Files.Add(relativePath);
@@ -164,20 +111,17 @@ namespace XStatic.Generator
             return this;
         }
 
-        public JobBuilder AddAssetFiles(IEnumerable<string> relativePaths)
-        {
+        public JobBuilder AddAssetFiles(IEnumerable<string> relativePaths) {
             if (relativePaths?.Any() != true) return this;
 
-            foreach(var path in relativePaths)
-            {
+            foreach (var path in relativePaths) {
                 job.Files.Add(path);
             }
 
             return this;
         }
 
-        public Job Build()
-        {
+        public Job Build() {
             return job;
         }
     }

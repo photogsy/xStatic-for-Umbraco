@@ -35,7 +35,7 @@ namespace XStatic.Plugin.Db
 
         public void Terminate()
         {
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
         }
     }
 }

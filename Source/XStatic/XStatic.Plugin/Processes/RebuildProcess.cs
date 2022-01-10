@@ -24,27 +24,23 @@ namespace XStatic.Plugin.Processes
         private SitesRepository _sitesRepo;
 
         public RebuildProcess(IUmbracoContextFactory umbracoContextFactory,
-            IExportTypeSettings exportTypeSettings)
-        {
+            IExportTypeSettings exportTypeSettings) {
             _umbracoContextFactory = umbracoContextFactory;
             _exportTypeSettings = exportTypeSettings;
             _sitesRepo = new SitesRepository();
         }
 
-        public async Task<string> RebuildSite(int staticSiteId)
-        {
+        public async Task<string> RebuildSite(int staticSiteId) {
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
             var entity = _sitesRepo.Get(staticSiteId);
 
-            if (entity == null)
-            {
+            if (entity == null) {
                 throw new HttpException(404, "Site not found with id " + staticSiteId);
             }
 
-            using(var umbracoContext = _umbracoContextFactory.EnsureUmbracoContext())
-            {
+            using (var umbracoContext = _umbracoContextFactory.EnsureUmbracoContext()) {
                 IFileNameGenerator fileNamer = entity.ExportFormat == "api" ? (IFileNameGenerator)new JsonFileNameGenerator() : new EverythingIsIndexHtmlFileNameGenerator();
 
                 int rootNodeId = int.Parse(entity.RootNode);
@@ -53,16 +49,12 @@ namespace XStatic.Plugin.Processes
                 var builder = new JobBuilder(entity.Id, fileNamer)
                     .AddPageWithDescendants(rootNode);
 
-                AddMediaToBuilder(entity, umbracoContext, builder);
-                AddMediaCropsToBuilder(entity, builder);
-
                 AddAssetsToBuilder(entity, builder);
 
                 var listFactory = _exportTypeSettings.GetTransformerListFactory(entity.ExportFormat);
                 var transformers = listFactory.BuildTransformers(entity);
 
-                if(transformers.Any())
-                {
+                if (transformers.Any()) {
                     builder.AddTransformers(transformers);
                 }
 
@@ -76,14 +68,12 @@ namespace XStatic.Plugin.Processes
             }
         }
 
-        private async Task<List<string>> GetResults(GeneratedSite entity, JobBuilder builder)
-        {
+        private async Task<List<string>> GetResults(GeneratedSite entity, JobBuilder builder) {
             var results = new List<string>();
 
             var generator = _exportTypeSettings.GetGenerator(entity.ExportFormat);
 
-            if(generator == null)
-            {
+            if (generator == null) {
                 throw new Exception("Export format not supported");
             }
 
@@ -94,74 +84,31 @@ namespace XStatic.Plugin.Processes
             return results;
         }
 
-        private static void AddAssetsToBuilder(GeneratedSite entity, JobBuilder builder)
-        {
-            if (!string.IsNullOrEmpty(entity.AssetPaths))
-            {
+        private static void AddAssetsToBuilder(GeneratedSite entity, JobBuilder builder) {
+            if (!string.IsNullOrEmpty(entity.AssetPaths)) {
                 var splitPaths = entity.AssetPaths.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
                 var rootPath = HostingEnvironment.MapPath("~/");
 
-                foreach (var path in splitPaths)
-                {
+                foreach (var path in splitPaths) {
                     var absolutePath = FileHelpers.PathCombine(rootPath, path);
 
-                    if(path.Contains("?") || path.Contains("*"))
-                    {
+                    if (path.Contains("?") || path.Contains("*")) {
                         var trimmedPath = path.TrimStart(new[] { '\\', '/' });
 
                         var directory = new DirectoryInfo(rootPath);
                         var files = directory.GetFiles(trimmedPath, SearchOption.AllDirectories);
 
                         builder.AddAssetFiles(files.Select(f => "/" + FileHelpers.GetRelativePath(rootPath, f.FullName)));
-                    }
-                    else if (Directory.Exists(absolutePath))
-                    {
+                    } else if (Directory.Exists(absolutePath)) {
                         builder.AddAssetFolder(path);
-                    }
-                    else if (System.IO.File.Exists(absolutePath))
-                    {
+                    } else if (System.IO.File.Exists(absolutePath)) {
                         builder.AddAssetFile(path);
-                    }
-                    else
-                    {
+                    } else {
                         // Invalid file.
                     }
                 }
             }
         }
 
-        private static void AddMediaToBuilder(GeneratedSite entity, UmbracoContextReference umbracoContext, JobBuilder builder)
-        {
-            if (!string.IsNullOrEmpty(entity.MediaRootNodes))
-            {
-                var mediaRoots = entity.MediaRootNodes.Split(new[] { "," }, StringSplitOptions.RemoveEmptyEntries);
-
-                foreach (var mediaRoot in mediaRoots)
-                {
-                    int mediaId;
-
-                    if (int.TryParse(mediaRoot, out mediaId))
-                    {
-                        var rootMedia = umbracoContext.UmbracoContext.Media.GetById(mediaId);
-
-                        if (rootMedia != null)
-                        {
-                            builder.AddMediaWithDescendants(rootMedia);
-                        }
-                    }
-                }
-            }
-        }
-
-        private void AddMediaCropsToBuilder(GeneratedSite entity, JobBuilder builder)
-        {
-            if(string.IsNullOrEmpty(entity.ImageCrops))
-            {
-                return;
-            }
-
-            var crops = Crop.GetCropsFromCommaDelimitedString(entity.ImageCrops);
-            builder.AddMediaCrops(crops);
-        }
     }
 }
